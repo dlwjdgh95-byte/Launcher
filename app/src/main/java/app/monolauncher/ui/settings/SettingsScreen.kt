@@ -33,7 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,9 +52,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.monolauncher.R
 import app.monolauncher.search.SearchEngine
 import app.monolauncher.ui.AdbCommand
-import app.monolauncher.ui.LocationResult
+import app.monolauncher.ui.LocationPermissions
 import app.monolauncher.ui.hasLocationPermission
-import app.monolauncher.ui.requestCurrentLocation
 import app.monolauncher.ui.Mono
 import app.monolauncher.ui.MonoTextButton
 import app.monolauncher.ui.MonoTextField
@@ -67,6 +65,7 @@ import app.monolauncher.ui.openSystemSettings
 import app.monolauncher.ui.rememberRequestDefaultHome
 import app.monolauncher.ui.rememberStatusOnResume
 import app.monolauncher.ui.versionName
+import kotlinx.coroutines.Dispatchers
 
 private enum class Section(@StringRes val title: Int) {
     REGISTERED(R.string.settings_registered),
@@ -241,29 +240,15 @@ private fun ColumnScope.Variables(viewModel: SettingsViewModel) {
     val context = LocalContext.current
     val names by viewModel.variableNames.collectAsStateWithLifecycle()
     val values by viewModel.variables.collectAsStateWithLifecycle()
-    var locating by remember { mutableStateOf(false) }
-    var locationMessage by remember { mutableStateOf<Int?>(null) }
-    // Bumped after a location fix so the text fields re-read the stored values.
-    var fieldsVersion by remember { mutableIntStateOf(0) }
+    // In the view model, so a fix that lands after a fold/unfold recreation still reaches this screen.
+    val locating by viewModel.locating.collectAsStateWithLifecycle()
+    val locationNotice by viewModel.locationNotice.collectAsStateWithLifecycle()
 
-    val saveCurrentLocation = {
-        locating = true
-        locationMessage = null
-        context.requestCurrentLocation { result ->
-            locating = false
-            locationMessage = when (result) {
-                is LocationResult.Found -> {
-                    viewModel.setHomeLocation(result.location.latitude, result.location.longitude)
-                    fieldsVersion++
-                    R.string.location_saved
-                }
-                LocationResult.ServicesOff -> R.string.location_services_off
-                LocationResult.Unavailable -> R.string.location_failed
-            }
-        }
-    }
-    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) saveCurrentLocation() else locationMessage = R.string.location_denied
+    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        viewModel.onLocationPermissionResult(
+            fineGranted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true,
+            coarseGranted = grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true,
+        )
     }
 
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -272,16 +257,19 @@ private fun ColumnScope.Variables(viewModel: SettingsViewModel) {
             text = stringResource(if (locating) R.string.location_locating else R.string.location_save_home),
             onClick = {
                 if (!locating) {
-                    if (context.hasLocationPermission()) saveCurrentLocation()
-                    else requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                    if (context.hasLocationPermission()) viewModel.saveCurrentLocation()
+                    else requestPermission.launch(LocationPermissions)
                 }
             },
             modifier = Modifier.padding(top = 12.dp),
         )
-        locationMessage?.let { Text(stringResource(it), color = Mono.Muted, fontSize = 13.sp) }
+        locationNotice?.let { Text(stringResource(it.text), color = Mono.Muted, fontSize = 13.sp) }
         names.forEach { name ->
-            key(name, fieldsVersion) {
-                var text by rememberSaveable { mutableStateOf(values[name].orEmpty()) }
+            key(name) {
+                val stored = values[name].orEmpty()
+                var text by rememberSaveable { mutableStateOf(stored) }
+                // Pick up writes from elsewhere (a location fix), but not this field's own (trimmed) edits.
+                LaunchedEffect(stored) { if (stored != text.trim()) text = stored }
                 Column(Modifier.padding(top = 16.dp)) {
                     SectionLabel(name)
                     MonoTextField(
@@ -297,6 +285,16 @@ private fun ColumnScope.Variables(viewModel: SettingsViewModel) {
     }
 }
 
+@get:StringRes
+private val LocationNotice.text: Int
+    get() = when (this) {
+        LocationNotice.SAVED -> R.string.location_saved
+        LocationNotice.SERVICES_OFF -> R.string.location_services_off
+        LocationNotice.FAILED -> R.string.location_failed
+        LocationNotice.DENIED -> R.string.location_denied
+        LocationNotice.PRECISE_NEEDED -> R.string.location_precise_needed
+    }
+
 private sealed interface EditorFeedback {
     data class Checked(val result: RoutineCheck, val saved: Boolean) : EditorFeedback
     data object Reset : EditorFeedback
@@ -305,25 +303,20 @@ private sealed interface EditorFeedback {
 @Composable
 private fun ColumnScope.RoutinesEditor(viewModel: SettingsViewModel) {
     val saved by viewModel.routinesJson.collectAsStateWithLifecycle()
-    var editor by rememberSaveable { mutableStateOf(saved) }
+    // The draft lives in the view model so a HOME press (which closes settings) does not drop it.
+    // Immediate dispatch updates the field synchronously on each keystroke, as local state would
+    // (a text field fed asynchronously can break Hangul composition).
+    val draft by viewModel.routineDraft.collectAsStateWithLifecycle(context = Dispatchers.Main.immediate)
+    val editor = draft ?: saved
     var feedback by remember { mutableStateOf<EditorFeedback?>(null) }
-    var awaitingReset by remember { mutableStateOf(false) }
-    // In case the settings store applies the reset asynchronously.
-    LaunchedEffect(saved) {
-        if (awaitingReset) {
-            editor = saved
-            awaitingReset = false
-        }
-    }
 
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
         Text(stringResource(R.string.routines_help), color = Mono.Muted, fontSize = 13.sp)
         MonoTextField(
             value = editor,
             onValueChange = {
-                editor = it
+                viewModel.editRoutines(it)
                 feedback = null
-                awaitingReset = false
             },
             singleLine = false,
             textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp),
@@ -337,8 +330,7 @@ private fun ColumnScope.RoutinesEditor(viewModel: SettingsViewModel) {
                 feedback = EditorFeedback.Checked(viewModel.save(editor), saved = true)
             })
             MonoTextButton(stringResource(R.string.routines_reset), color = Mono.Muted, onClick = {
-                editor = viewModel.resetRoutines()
-                awaitingReset = true
+                viewModel.resetRoutines()
                 feedback = EditorFeedback.Reset
             })
         }

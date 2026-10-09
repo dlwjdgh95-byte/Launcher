@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +55,10 @@ private fun Banner(content: @Composable () -> Unit) {
     ) { content() }
 }
 
-/** The adb grant command, selectable, with a copy button. */
+/**
+ * The adb grant command with a copy button. Deliberately not selectable: the selection menu's extra
+ * items (translate, smart selection) would open other apps from the home screen during a session.
+ */
 @Composable
 fun AdbCommand(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -69,9 +71,7 @@ fun AdbCommand(modifier: Modifier = Modifier) {
         }
     }
     Column(modifier) {
-        SelectionContainer {
-            Text(command, fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = Mono.Muted)
-        }
+        Text(command, fontFamily = FontFamily.Monospace, fontSize = 13.sp, color = Mono.Muted)
         MonoTextButton(
             text = stringResource(if (copied) R.string.copied else R.string.copy),
             onClick = {
