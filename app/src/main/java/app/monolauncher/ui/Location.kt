@@ -3,15 +3,17 @@ package app.monolauncher.ui
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
 import android.location.LocationManager
 import android.os.CancellationSignal
 
 sealed interface LocationResult {
-    data class Found(val location: Location) : LocationResult
+    data class Found(val latitude: Double, val longitude: Double) : LocationResult
     data object ServicesOff : LocationResult
     data object Unavailable : LocationResult
 }
+
+/** Requested together (Android 12+ requires it); only a precise (FINE) fix is used for 집 가기. */
+val LocationPermissions = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
 
 fun Context.hasLocationPermission(): Boolean =
     checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
@@ -25,7 +27,7 @@ fun Context.requestCurrentLocation(onResult: (LocationResult) -> Unit) {
         ?: return onResult(LocationResult.Unavailable)
     try {
         manager.getCurrentLocation(provider, CancellationSignal(), mainExecutor) { location ->
-            onResult(if (location != null) LocationResult.Found(location) else LocationResult.Unavailable)
+            onResult(if (location != null) LocationResult.Found(location.latitude, location.longitude) else LocationResult.Unavailable)
         }
     } catch (_: SecurityException) {
         onResult(LocationResult.Unavailable)

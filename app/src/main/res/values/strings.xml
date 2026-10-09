@@ -54,6 +54,7 @@
     <string name="location_failed">위치를 가져오지 못했습니다. 잠시 후 다시 시도하세요</string>
     <string name="location_services_off">위치 서비스가 꺼져 있습니다</string>
     <string name="location_denied">위치 권한이 없어 저장하지 못했습니다</string>
+    <string name="location_precise_needed">대략적인 위치만 허용되어 저장하지 못했습니다. 위치 권한에서 \'정확한 위치 사용\'을 켜 주세요</string>
     <string name="routines_help">단계 type: launch, deeplink, shortcut, delay, media, volume, dnd, torch, timer, alarm, home</string>
     <string name="routines_validate">검증</string>
     <string name="routines_save">저장</string>

@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.contextmenu.data.TextContextMenuComponent
+import androidx.compose.foundation.text.contextmenu.data.TextContextMenuKeys
+import androidx.compose.foundation.text.contextmenu.modifier.filterTextContextMenuComponents
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -25,6 +28,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+private val BasicTextMenuKeys = setOf(
+    TextContextMenuKeys.CutKey,
+    TextContextMenuKeys.CopyKey,
+    TextContextMenuKeys.PasteKey,
+    TextContextMenuKeys.SelectAllKey,
+)
+
+/** True for cut, copy, paste and select all; false for process-text, smart-selection, autofill and other items. */
+internal fun isBasicTextMenuItem(component: TextContextMenuComponent): Boolean = component.key in BasicTextMenuKeys
+
+/**
+ * Limits the text selection menu to cut/copy/paste/select all. The other items (translate, "process text",
+ * smart-selection actions) open other apps, which would bypass the registered-app limit during a session.
+ */
+fun Modifier.basicTextMenuOnly(): Modifier = filterTextContextMenuComponents(::isBasicTextMenuItem)
 
 /** Plain text input: no capitalisation or autocorrect, which would garble Hangul typed in English mode. */
 val PlainKeyboard = KeyboardOptions(

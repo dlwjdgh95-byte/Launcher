@@ -72,6 +72,8 @@ fun HomeScreen(viewModel: HomeViewModel, compact: Boolean) {
         if (active) Routines(routines, onRun = viewModel::runRoutine) else StartPanel(onStart = viewModel::start)
     }
 
+    // Both layouts: only the top content scrolls; status, results, search and the bottom bar are pinned below it.
+    // safeDrawingPadding includes the IME, so the weighted column shrinks and the pinned part stays above the keyboard.
     if (compact) {
         // Cover screen: status, results and search sit at the bottom, within thumb reach.
         Column(
@@ -97,11 +99,12 @@ fun HomeScreen(viewModel: HomeViewModel, compact: Boolean) {
             ) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     top()
-                    message?.let { MessageLine(it) }
-                    Spacer(Modifier.height(40.dp))
-                    searchField()
-                    searchResults(false)
+                    Spacer(Modifier.height(24.dp))
                 }
+                message?.let { MessageLine(it) }
+                // Results grow upward from the field, so the field does not move while typing.
+                searchResults(true)
+                searchField()
                 BottomBar(active, onExit = viewModel::requestExit, onOpenSettings = viewModel::openSettings)
             }
         }
@@ -203,7 +206,7 @@ private fun SearchField(state: TextFieldState, onGo: () -> Unit) {
     val style = TextStyle(fontSize = 22.sp, color = Mono.Text)
     BasicTextField(
         state = state,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().basicTextMenuOnly(),
         textStyle = style,
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.None,
