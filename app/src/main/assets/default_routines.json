@@ -7,7 +7,7 @@
       "steps": [
         {
           "type": "deeplink",
-          "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT",
+          "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}",
           "packageName": "net.daum.android.map"
         }
       ]
@@ -17,13 +17,29 @@
       "label": "음악",
       "steps": [
         { "type": "launch", "packageName": "com.google.android.apps.youtube.music" },
-        { "type": "delay", "ms": 2500 },
+        { "type": "delay", "ms": 3000 },
+        { "type": "media", "action": "play" }
+      ]
+    },
+    {
+      "id": "read",
+      "label": "독서",
+      "steps": [
+        { "type": "launch", "packageName": "com.kyobo.ebook.samsung" }
+      ]
+    },
+    {
+      "id": "audiobook",
+      "label": "오디오북",
+      "steps": [
+        { "type": "launch", "packageName": "kr.co.millie.millieshelf" },
+        { "type": "delay", "ms": 4000 },
         { "type": "media", "action": "play" }
       ]
     },
     {
       "id": "smart_home",
-      "label": "집",
+      "label": "Google Home",
       "steps": [
         { "type": "launch", "packageName": "com.google.android.apps.chromecast.app" }
       ]

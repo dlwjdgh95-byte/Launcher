@@ -15,11 +15,11 @@ class DefaultRoutinesTest {
             .readText(),
     )
 
-    private val home = mapOf("home_lat" to "37.5665", "home_lng" to "126.9780")
+    private val home = Defaults.VARIABLES + mapOf("home_lat" to "37.5665", "home_lng" to "126.9780")
 
     @Test
     fun parsesWithUniqueIds() {
-        assertEquals(listOf("집 가기", "음악", "집"), config.routines.map { it.label })
+        assertEquals(listOf("집 가기", "음악", "독서", "오디오북", "Google Home"), config.routines.map { it.label })
         assertEquals(config.routines.size, config.routines.map { it.id }.toSet().size)
     }
 
@@ -33,7 +33,7 @@ class DefaultRoutinesTest {
         assertEquals(
             listOf(
                 Step.DeepLink(
-                    "kakaomap://route?ep=37.5665,126.9780&by=PUBLICTRANSIT",
+                    "kakaomap://route?ep=37.5665,126.9780&by=publictransit",
                     "net.daum.android.map",
                 ),
             ),

@@ -47,7 +47,13 @@
     <string name="aliases_hint">검색에 쓸 다른 이름을 쉼표로 구분해 적습니다.</string>
     <string name="aliases_placeholder">예: 지도, 카맵</string>
     <string name="aliases_empty">등록된 앱이 없습니다.</string>
-    <string name="variables_hint">루틴의 {이름} 자리에 들어갈 값입니다. 집 좌표는 소수 위도·경도로 적습니다 (예: 37.5665, 126.9780).</string>
+    <string name="variables_hint">루틴의 {이름} 자리에 들어갈 값입니다. 집 좌표는 소수 위도·경도로 적습니다 (예: 37.5665, 126.9780). home_by는 카카오맵 이동수단입니다: publictransit, car, foot, bicycle.</string>
+    <string name="location_save_home">현재 위치를 집으로 저장</string>
+    <string name="location_locating">위치 확인 중…</string>
+    <string name="location_saved">집 좌표를 저장했습니다</string>
+    <string name="location_failed">위치를 가져오지 못했습니다. 잠시 후 다시 시도하세요</string>
+    <string name="location_services_off">위치 서비스가 꺼져 있습니다</string>
+    <string name="location_denied">위치 권한이 없어 저장하지 못했습니다</string>
     <string name="routines_help">단계 type: launch, deeplink, shortcut, delay, media, volume, dnd, torch, timer, alarm, home</string>
     <string name="routines_validate">검증</string>
     <string name="routines_save">저장</string>

@@ -1,6 +1,9 @@
 package app.monolauncher.ui.settings
 
+import android.Manifest
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
@@ -30,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -49,6 +53,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.monolauncher.R
 import app.monolauncher.search.SearchEngine
 import app.monolauncher.ui.AdbCommand
+import app.monolauncher.ui.LocationResult
+import app.monolauncher.ui.hasLocationPermission
+import app.monolauncher.ui.requestCurrentLocation
 import app.monolauncher.ui.Mono
 import app.monolauncher.ui.MonoTextButton
 import app.monolauncher.ui.MonoTextField
@@ -231,13 +238,49 @@ private fun ColumnScope.Aliases(viewModel: SettingsViewModel) {
 
 @Composable
 private fun ColumnScope.Variables(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
     val names by viewModel.variableNames.collectAsStateWithLifecycle()
     val values by viewModel.variables.collectAsStateWithLifecycle()
+    var locating by remember { mutableStateOf(false) }
+    var locationMessage by remember { mutableStateOf<Int?>(null) }
+    // Bumped after a location fix so the text fields re-read the stored values.
+    var fieldsVersion by remember { mutableIntStateOf(0) }
+
+    val saveCurrentLocation = {
+        locating = true
+        locationMessage = null
+        context.requestCurrentLocation { result ->
+            locating = false
+            locationMessage = when (result) {
+                is LocationResult.Found -> {
+                    viewModel.setHomeLocation(result.location.latitude, result.location.longitude)
+                    fieldsVersion++
+                    R.string.location_saved
+                }
+                LocationResult.ServicesOff -> R.string.location_services_off
+                LocationResult.Unavailable -> R.string.location_failed
+            }
+        }
+    }
+    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) saveCurrentLocation() else locationMessage = R.string.location_denied
+    }
 
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
         Text(stringResource(R.string.variables_hint), color = Mono.Muted, fontSize = 13.sp)
+        MonoTextButton(
+            text = stringResource(if (locating) R.string.location_locating else R.string.location_save_home),
+            onClick = {
+                if (!locating) {
+                    if (context.hasLocationPermission()) saveCurrentLocation()
+                    else requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+            },
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        locationMessage?.let { Text(stringResource(it), color = Mono.Muted, fontSize = 13.sp) }
         names.forEach { name ->
-            key(name) {
+            key(name, fieldsVersion) {
                 var text by rememberSaveable { mutableStateOf(values[name].orEmpty()) }
                 Column(Modifier.padding(top = 16.dp)) {
                     SectionLabel(name)

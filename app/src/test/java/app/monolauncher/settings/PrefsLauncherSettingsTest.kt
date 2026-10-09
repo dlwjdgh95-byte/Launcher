@@ -16,7 +16,7 @@ class PrefsLauncherSettingsTest {
 
         assertEquals(Defaults.REGISTERED_PACKAGES.toSet(), settings.registeredPackages.value)
         assertEquals(emptyMap<String, List<String>>(), settings.aliases.value)
-        assertEquals(emptyMap<String, String>(), settings.variables.value)
+        assertEquals(Defaults.VARIABLES, settings.variables.value)
         assertEquals(defaultRoutines, settings.routinesJson.value)
     }
 
@@ -59,11 +59,19 @@ class PrefsLauncherSettingsTest {
         settings.setVariable("home_lng", "127.0")
         settings.setVariable("home_lat", "37.6")
 
-        assertEquals(mapOf("home_lat" to "37.6", "home_lng" to "127.0"), settings(prefs).variables.value)
+        assertEquals(Defaults.VARIABLES + mapOf("home_lat" to "37.6", "home_lng" to "127.0"), settings(prefs).variables.value)
     }
 
     @Test
-    fun `corrupt stored json falls back to empty maps`() {
+    fun `user values override default variables`() {
+        val prefs = FakeSharedPreferences()
+        settings(prefs).setVariable("home_by", "car")
+
+        assertEquals("car", settings(prefs).variables.value["home_by"])
+    }
+
+    @Test
+    fun `corrupt stored json falls back to defaults`() {
         val prefs = FakeSharedPreferences().apply {
             values[PrefsLauncherSettings.KEY_ALIASES] = "{not json"
             values[PrefsLauncherSettings.KEY_VARIABLES] = "[1,2]"
@@ -72,7 +80,7 @@ class PrefsLauncherSettingsTest {
         val settings = settings(prefs)
 
         assertEquals(emptyMap<String, List<String>>(), settings.aliases.value)
-        assertEquals(emptyMap<String, String>(), settings.variables.value)
+        assertEquals(Defaults.VARIABLES, settings.variables.value)
     }
 
     @Test

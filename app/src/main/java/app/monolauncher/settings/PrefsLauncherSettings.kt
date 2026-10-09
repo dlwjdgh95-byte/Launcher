@@ -47,7 +47,7 @@ class PrefsLauncherSettings internal constructor(
         _aliases.value = next
     }
 
-    private val _variables = MutableStateFlow(readJson(KEY_VARIABLES, VARIABLES_SERIALIZER))
+    private val _variables = MutableStateFlow(Defaults.VARIABLES + readJson(KEY_VARIABLES, VARIABLES_SERIALIZER))
     override val variables: StateFlow<Map<String, String>> = _variables.asStateFlow()
 
     @Synchronized

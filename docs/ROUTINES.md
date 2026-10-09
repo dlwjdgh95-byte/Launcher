@@ -12,7 +12,7 @@
       "id": "go_home",
       "label": "집 가기",
       "steps": [
-        { "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT", "packageName": "net.daum.android.map" }
+        { "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}", "packageName": "net.daum.android.map" }
       ]
     }
   ]
@@ -66,7 +66,8 @@
 | 카카오맵 | `net.daum.android.map` |
 | YouTube Music | `com.google.android.apps.youtube.music` |
 | Google Home | `com.google.android.apps.chromecast.app` |
-| 밀리의서재, 교보eBook for 삼성 | 기기에서 확인 (`device-check`가 `millie`, `kyobo`가 들어간 패키지를 보여 줌) |
+| 밀리의서재 | `kr.co.millie.millieshelf` (갤럭시 스토어판 `kr.co.millie.millieshelf.samsung`) |
+| 교보eBook for 삼성 | `com.kyobo.ebook.samsung` (Play판 교보eBook은 `com.kyobo.ebook.common.b2c`) |
 
 ### deeplink — 링크로 열기
 
@@ -76,19 +77,21 @@
 | `packageName` | 문자열 | 아니요 | 링크를 열 앱. **세션 중에는 반드시 있어야 실행됩니다** |
 
 ```json
-{ "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT", "packageName": "net.daum.android.map" }
+{ "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}", "packageName": "net.daum.android.map" }
 ```
 
 자주 쓰는 링크:
 
 | 하는 일 | `uri` | `packageName` |
 |---|---|---|
-| 현재 위치 → 목적지 길찾기 | `kakaomap://route?ep=위도,경도&by=PUBLICTRANSIT` | `net.daum.android.map` |
-| 출발지를 정한 길찾기 | `kakaomap://route?sp=위도,경도&ep=위도,경도&by=CAR` | `net.daum.android.map` |
+| 현재 위치 → 목적지 길찾기 | `kakaomap://route?ep=위도,경도&by=publictransit` | `net.daum.android.map` |
+| 출발지를 정한 길찾기 | `kakaomap://route?sp=위도,경도&ep=위도,경도&by=car` | `net.daum.android.map` |
+| 길찾기 입력 화면 | `kakaomap://open?page=routeSearch` | `net.daum.android.map` |
+| 밀리의서재 투데이 | `millieshelf://app?menu_id=viewfinder` | `kr.co.millie.millieshelf` |
 | 위치 보기 | `kakaomap://look?p=위도,경도` | `net.daum.android.map` |
 | YouTube Music 재생목록 | `https://music.youtube.com/playlist?list=재생목록ID` | `com.google.android.apps.youtube.music` |
 
-카카오맵 `by` 값: `CAR`(자동차), `PUBLICTRANSIT`(대중교통), `FOOT`(도보), `BICYCLE`(자전거). `sp`를 빼면 현재 위치에서 출발합니다.
+카카오맵 `by` 값: `car`(자동차), `publictransit`(대중교통), `foot`(도보), `bicycle`(자전거). `sp`를 빼면 현재 위치에서 출발하는 것으로 보이지만 공식 문서에는 없어서 폰에서 확인이 필요합니다. 밀리의서재 링크는 공개 규약이 아니라 앱 업데이트로 바뀔 수 있습니다. 교보eBook은 링크가 없어 `launch`만 됩니다.
 
 ### shortcut — 앱 바로가기
 
@@ -203,18 +206,19 @@ adb shell cmd notification allow_dnd app.monolauncher
 문자열 필드에 `{이름}`을 쓰면 실행할 때 설정 > 루틴 변수의 값으로 바뀝니다.
 
 ```json
-{ "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT", "packageName": "net.daum.android.map" }
+{ "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}", "packageName": "net.daum.android.map" }
 ```
 
 | 변수 | 쓰는 곳 | 예 |
 |---|---|---|
 | `home_lat` | '집 가기'의 도착지 위도 | `37.5665` |
 | `home_lng` | '집 가기'의 도착지 경도 | `126.9780` |
+| `home_by` | '집 가기'의 이동수단 (기본값 `publictransit`) | `car` |
 
 - 이름은 영문자나 밑줄로 시작하고 영문자·숫자·밑줄만 씁니다. 필요한 변수는 설정 > 루틴 변수에서 직접 더 만들 수 있습니다(예: `work_lat`, `work_lng`).
 - 쓸 수 있는 필드: `launch.packageName`, `deeplink.uri`, `deeplink.packageName`, `shortcut.packageName`, `shortcut.shortcutId`, `timer.message`, `alarm.message`. 숫자 필드에는 쓸 수 없습니다.
 - 값을 넣지 않은 변수가 있으면 그 단계는 '설정에서 'home_lat' 값을 입력해 주세요'라며 실패하고, 나머지 단계는 계속 실행됩니다.
-- 좌표는 구글 지도에서 위치를 길게 누르면 `37.5665, 126.9780`처럼 나옵니다. 앞이 위도, 뒤가 경도입니다.
+- 집 좌표는 집에서 설정 > 루틴 변수의 **'현재 위치를 집으로 저장'** 을 누르면 자동으로 들어갑니다(위치 권한 필요). 직접 넣으려면 구글 지도에서 위치를 길게 누르면 `37.5665, 126.9780`처럼 나옵니다. 앞이 위도, 뒤가 경도입니다.
 
 ## 세션 중 규칙
 
@@ -240,14 +244,14 @@ adb shell cmd notification allow_dnd app.monolauncher
 
 ### 집 가기 (기본 루틴)
 
-현재 위치에서 집까지 대중교통 길찾기를 엽니다. `home_lat`, `home_lng`를 먼저 넣으세요.
+현재 위치에서 집까지 길찾기를 엽니다. 집 좌표(`home_lat`, `home_lng`)를 먼저 저장하세요. 이동수단은 `home_by`로 바꿉니다.
 
 ```json
 {
   "id": "go_home",
   "label": "집 가기",
   "steps": [
-    { "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT", "packageName": "net.daum.android.map" }
+    { "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}", "packageName": "net.daum.android.map" }
   ]
 }
 ```
@@ -260,7 +264,37 @@ adb shell cmd notification allow_dnd app.monolauncher
   "label": "음악",
   "steps": [
     { "type": "launch", "packageName": "com.google.android.apps.youtube.music" },
-    { "type": "delay", "ms": 2500 },
+    { "type": "delay", "ms": 3000 },
+    { "type": "media", "action": "play" }
+  ]
+}
+```
+
+YouTube Music Premium이 없으면 다른 앱으로 넘어갔을 때 재생이 멈출 수 있습니다.
+
+### 독서 (기본 루틴)
+
+```json
+{
+  "id": "read",
+  "label": "독서",
+  "steps": [
+    { "type": "launch", "packageName": "com.kyobo.ebook.samsung" }
+  ]
+}
+```
+
+### 오디오북 (기본 루틴)
+
+밀리의서재를 열고 마지막에 듣던 오디오북을 이어서 재생합니다. 재생 키는 마지막으로 재생한 앱에 전달되므로, 밀리의서재가 마지막 재생 앱이어야 합니다.
+
+```json
+{
+  "id": "audiobook",
+  "label": "오디오북",
+  "steps": [
+    { "type": "launch", "packageName": "kr.co.millie.millieshelf" },
+    { "type": "delay", "ms": 4000 },
     { "type": "media", "action": "play" }
   ]
 }
@@ -277,14 +311,14 @@ adb shell cmd notification allow_dnd app.monolauncher
     { "type": "deeplink", "uri": "https://music.youtube.com/playlist?list=재생목록ID", "packageName": "com.google.android.apps.youtube.music" },
     { "type": "delay", "ms": 3000 },
     { "type": "media", "action": "play" },
-    { "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT", "packageName": "net.daum.android.map" }
+    { "type": "deeplink", "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}", "packageName": "net.daum.android.map" }
   ]
 }
 ```
 
 ### 독서 30분
 
-`밀리의서재패키지` 자리에는 `device-check`로 확인한 실제 패키지 이름을 넣으세요. 그 앱이 등록 앱이어야 세션 중에 열립니다.
+타이머는 삼성 시계 앱을 열 수 있습니다. 방해 금지는 루틴이 끝나도 켜진 채로 남으니, 끌 때는 `{ "type": "dnd", "on": false }` 단계가 있는 루틴을 따로 만드세요.
 
 ```json
 {
@@ -293,17 +327,19 @@ adb shell cmd notification allow_dnd app.monolauncher
   "steps": [
     { "type": "dnd", "on": true },
     { "type": "timer", "seconds": 1800, "message": "독서 끝" },
-    { "type": "launch", "packageName": "밀리의서재패키지" }
+    { "type": "launch", "packageName": "kr.co.millie.millieshelf" }
   ]
 }
 ```
 
-### 스마트홈
+### Google Home (기본 루틴)
+
+Google Home 자동화(조명 등)를 바로 실행하는 공개된 방법은 없어서 앱을 여는 데까지만 합니다.
 
 ```json
 {
   "id": "smart_home",
-  "label": "집",
+  "label": "Google Home",
   "steps": [
     { "type": "launch", "packageName": "com.google.android.apps.chromecast.app" }
   ]

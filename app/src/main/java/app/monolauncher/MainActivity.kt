@@ -27,7 +27,8 @@ class MainActivity : ComponentActivity() {
     // singleTask HOME: pressing HOME delivers a new intent here instead of a new activity.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        viewModel.resetUi()
+        // Only a HOME press resets; a routine's bring-to-front intent must not clear its status line.
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) viewModel.resetUi()
     }
 
     override fun onResume() {

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import java.util.Locale
 
 /** Settings edits. Every write is ignored unless the session is EXITED (editing mid-session would be a bypass). */
 class SettingsViewModel(
@@ -52,6 +53,13 @@ class SettingsViewModel(
 
     fun setVariable(name: String, value: String) {
         if (editable) settings.setVariable(name, value.trim())
+    }
+
+    /** Stores a location fix as the 집 가기 destination (6 decimals is about 10 cm). */
+    fun setHomeLocation(latitude: Double, longitude: Double) {
+        if (!editable) return
+        settings.setVariable("home_lat", "%.6f".format(Locale.US, latitude))
+        settings.setVariable("home_lng", "%.6f".format(Locale.US, longitude))
     }
 
     fun validate(json: String): RoutineCheck = checkRoutinesJson(json)
