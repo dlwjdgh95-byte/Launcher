@@ -8,6 +8,8 @@ import java.text.Normalizer
  * Syllables are decomposed with NFKD (which also turns IME compatibility jamo into conjoining jamo),
  * then every jamo is mapped back to a simple compatibility letter so keys stay readable:
  * finals become the matching initial, compound vowels/finals are split (ㅘ → ㅗㅏ, ㄺ → ㄹㄱ).
+ * NFKD turns most compound-consonant IME letters into finals, but ㅀ and ㅄ into archaic initials,
+ * which are mapped explicitly so they split the same way.
  * Doing this on both sides makes in-progress IME states match: '캌' ⊂ 카카오톡, '전호' ⊂ 전화.
  */
 internal object KoreanText {
@@ -32,6 +34,8 @@ internal object KoreanText {
             if (!Character.isLetterOrDigit(cp)) return@forEach
             val jamo = when (cp) {
                 in 0x1100..0x1112 -> CHOSEONG[cp - 0x1100]
+                0x111A -> 'ㅀ' // NFKD of compatibility ㅀ (U+3140)
+                0x1121 -> 'ㅄ' // NFKD of compatibility ㅄ (U+3144)
                 in 0x1161..0x1175 -> JUNGSEONG[cp - 0x1161]
                 in 0x11A8..0x11C2 -> JONGSEONG[cp - 0x11A8]
                 in 0x3131..0x3163 -> cp.toChar()

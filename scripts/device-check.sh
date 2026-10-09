@@ -43,6 +43,8 @@ if [ "$count" -ne 1 ]; then
   die "기기가 정확히 1대 연결되어 있어야 합니다 (지금 ${count}대).
     USB 디버깅 허용 창, 케이블, 삼성 자동 차단기(설정 > 보안 및 개인정보 보호 > 자동 차단기)를 확인하세요."
 fi
+# Other entries (unauthorized, offline) would make every plain adb command fail with "more than one device".
+export ANDROID_SERIAL="$ready"
 
 section "기기와 버전"
 oneui=$(adb_sh getprop ro.build.version.oneui)

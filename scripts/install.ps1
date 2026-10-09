@@ -5,6 +5,7 @@
   powershell -ExecutionPolicy Bypass -File install.ps1 [APK 경로]
 
 APK를 생략하면 이 스크립트가 있는 폴더와 현재 폴더에서 가장 최근 monolauncher*.apk를 찾습니다.
+서명되지 않은 *-unsigned.apk는 설치할 수 없으므로 건너뜁니다.
 #>
 param([string]$Apk)
 
@@ -46,13 +47,16 @@ function Find-Apk {
     if (Test-Path -LiteralPath $outputs) {
         $found += @(Get-ChildItem -LiteralPath $outputs -Filter '*.apk' -File -Recurse -ErrorAction SilentlyContinue)
     }
-    $newest = $found | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    # Built without a signing config; adb refuses it with INSTALL_PARSE_FAILED_NO_CERTIFICATES.
+    $found | Where-Object { $_.Name -like '*-unsigned.apk' } | ForEach-Object { Warn "서명되지 않은 APK라 건너뜁니다: $($_.FullName)" }
+    $newest = $found | Where-Object { $_.Name -notlike '*-unsigned.apk' } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($newest) { return $newest.FullName }
     return $null
 }
 
-# Runs adb and returns its exit code with stdout and stderr merged as text.
+# Runs adb (on $script:Serial once it is known) and returns its exit code with stdout and stderr merged as text.
 function Invoke-Adb([string[]]$AdbArgs) {
+    if ($script:Serial) { $AdbArgs = @('-s', $script:Serial) + $AdbArgs }
     $lines = & $script:Adb @AdbArgs 2>&1 | ForEach-Object { "$_" }
     [pscustomobject]@{ Code = $LASTEXITCODE; Text = ($lines -join "`n") }
 }
@@ -90,6 +94,9 @@ if ($ready.Count -eq 0) {
     exit 1
 }
 if ($ready.Count -gt 1) { Fail "기기가 $($ready.Count)대 연결되어 있습니다. 설치할 폰 하나만 연결하세요." }
+# Other entries (unauthorized, offline) would make every plain adb command fail with "more than one device".
+# -s rather than $env:ANDROID_SERIAL, which would linger in the caller's session after `.\install.ps1`.
+$script:Serial = $ready[0]
 $model = (Invoke-Adb @('shell', 'getprop', 'ro.product.model')).Text.Trim()
 Ok "$($ready[0]) ($model)"
 
@@ -103,6 +110,9 @@ if ($r.Code -ne 0) {
         Fail "이미 설치된 앱과 서명 키가 다릅니다. 같은 키로 서명된 APK를 쓰세요.`n    (앱을 지우고 다시 설치할 수는 있지만, 먼저 런처에서 '종료'로 색을 되돌리세요. 설정과 권한은 모두 사라집니다.)"
     }
     if ($t -match 'INSTALL_FAILED_VERSION_DOWNGRADE') { Fail '설치된 버전보다 오래된 APK입니다. 최신 APK를 받으세요.' }
+    if ($t -match 'INSTALL_PARSE_FAILED_NO_CERTIFICATES') {
+        Fail "서명되지 않은 APK라 설치할 수 없습니다 (예: app-release-unsigned.apk).`n    GitHub Releases의 APK나 디버그 APK처럼 서명된 APK를 쓰세요.`n    직접 릴리스 빌드를 하려면 keystore.properties가 있어야 합니다 (README.md 참고)."
+    }
     if ($t -match 'blocked|USB|USER_RESTRICTED|VERIFICATION_FAILURE') {
         Write-Host ''
         Write-Host '[오류] 설치가 막혔습니다.' -ForegroundColor Red

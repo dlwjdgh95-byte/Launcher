@@ -57,6 +57,15 @@ class SearchEngineTest {
         assertEquals(listOf("가수"), labels("ㄳ", singer))
     }
 
+    @Test fun imeCombinedConsonantsThatNfkdMakesArchaicInitials() {
+        // NFKD maps ㅄ and ㅀ to archaic initials rather than finals; they must still split for 초성 search.
+        val apps = SearchEngine(listOf(item("부산은행"), item("보험"), item("라희 노트"), item("라디오")))
+        assertEquals(listOf("부산은행"), labels("ㅂㅅ", apps))
+        assertEquals(listOf("부산은행"), labels("ㅄ", apps))
+        assertEquals(listOf("부산은행"), labels("ㅄㅇㅎ", apps))
+        assertEquals(listOf("라희 노트"), labels("ㅀ", apps))
+    }
+
     @Test fun qwertyTypedHangulWithCompoundVowel() = assertEquals(display, top("ghkaus"))
 
     @Test fun qwertyTypedHangul() {

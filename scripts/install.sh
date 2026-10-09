@@ -2,6 +2,7 @@
 # 흑백 런처를 USB로 연결한 폰에 설치하고 흑백 권한(WRITE_SECURE_SETTINGS)을 부여합니다.
 # 사용법: install.sh [APK 경로]
 #   APK를 생략하면 이 스크립트가 있는 폴더와 현재 폴더에서 가장 최근 monolauncher*.apk를 찾습니다.
+#   서명되지 않은 *-unsigned.apk는 설치할 수 없으므로 건너뜁니다.
 set -euo pipefail
 
 PKG=app.monolauncher
@@ -50,8 +51,13 @@ find_apk() {
   [ ${#candidates[@]} -gt 0 ] || return 1
   local newest="" f
   for f in "${candidates[@]}"; do
+    case $f in
+      # Built without a signing config; adb refuses it with INSTALL_PARSE_FAILED_NO_CERTIFICATES.
+      *-unsigned.apk) printf '    [주의] 서명되지 않은 APK라 건너뜁니다: %s\n' "$f" >&2; continue ;;
+    esac
     if [ -z "$newest" ] || [ "$f" -nt "$newest" ]; then newest=$f; fi
   done
+  [ -n "$newest" ] || return 1
   echo "$newest"
 }
 
@@ -86,6 +92,8 @@ if [ "$count" -eq 0 ]; then
   exit 1
 fi
 [ "$count" -eq 1 ] || die "기기가 ${count}대 연결되어 있습니다. 설치할 폰 하나만 연결하세요."
+# Other entries (unauthorized, offline) would make every plain adb command fail with "more than one device".
+export ANDROID_SERIAL="$ready"
 model=$("$ADB" shell getprop ro.product.model | tr -d '\r')
 ok "$ready ($model)"
 
@@ -99,6 +107,10 @@ if ! out=$("$ADB" install -r -g "$APK" 2>&1); then
     (앱을 지우고 다시 설치할 수는 있지만, 먼저 런처에서 '종료'로 색을 되돌리세요. 설정과 권한은 모두 사라집니다.)" ;;
     *INSTALL_FAILED_VERSION_DOWNGRADE*)
       die "설치된 버전보다 오래된 APK입니다. 최신 APK를 받으세요." ;;
+    *INSTALL_PARSE_FAILED_NO_CERTIFICATES*)
+      die "서명되지 않은 APK라 설치할 수 없습니다 (예: app-release-unsigned.apk).
+    GitHub Releases의 APK나 디버그 APK처럼 서명된 APK를 쓰세요.
+    직접 릴리스 빌드를 하려면 keystore.properties가 있어야 합니다 (README.md 참고)." ;;
     *[Bb]locked*|*BLOCKED*|*USB*|*USER_RESTRICTED*|*VERIFICATION_FAILURE*)
       printf '\n[오류] 설치가 막혔습니다.\n' >&2
       auto_blocker_hint
