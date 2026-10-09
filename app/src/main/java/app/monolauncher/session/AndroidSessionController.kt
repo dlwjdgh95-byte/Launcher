@@ -24,6 +24,7 @@ class AndroidSessionController(
         }
     }
 
+    /** Only runs while the launcher process is alive; [BootReceiver] restarts the process after boot or an update. */
     private val watch: GrayscaleWatch = object : GrayscaleWatch {
         private var armed = false
 

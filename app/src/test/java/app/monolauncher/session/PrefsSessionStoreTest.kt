@@ -2,7 +2,9 @@ package app.monolauncher.session
 
 import app.monolauncher.settings.FakeSharedPreferences
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PrefsSessionStoreTest {
@@ -13,6 +15,18 @@ class PrefsSessionStoreTest {
 
         assertEquals(SessionState.ACTIVE, store.state)
         assertNull(store.snapshot)
+        assertFalse(store.restorePending)
+    }
+
+    @Test
+    fun `restore pending flag is persisted`() {
+        val prefs = FakeSharedPreferences()
+
+        PrefsSessionStore(prefs).restorePending = true
+        assertTrue(PrefsSessionStore(prefs).restorePending)
+
+        PrefsSessionStore(prefs).restorePending = false
+        assertFalse(PrefsSessionStore(prefs).restorePending)
     }
 
     @Test

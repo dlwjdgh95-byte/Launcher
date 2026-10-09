@@ -19,6 +19,8 @@ class GrayscaleController(private val settings: SecureSettings) {
         const val KEY_ENABLED = "accessibility_display_daltonizer_enabled"
         const val KEY_MODE = "accessibility_display_daltonizer"
         const val MODE_MONOCHROMACY = 0
+        /** AccessibilityManager.DALTONIZER_CORRECT_DEUTERANOMALY: what the platform uses when the mode key is absent. */
+        const val MODE_PLATFORM_DEFAULT = 12
     }
 
     fun canControl(): Boolean = settings.canWrite()
@@ -35,14 +37,22 @@ class GrayscaleController(private val settings: SecureSettings) {
         return settings.putInt(KEY_MODE, MODE_MONOCHROMACY) && settings.putInt(KEY_ENABLED, 1)
     }
 
-    /** Restores [snapshot] (or turns grayscale off when the snapshot had no values). */
+    /**
+     * Restores [snapshot] and turns grayscale off.
+     *
+     * A null snapshot means grayscale was already on before the session started (start() saves none then): the mode
+     * was monochromacy before, so it is left as is and only the filter is switched off, because EXITED means color.
+     * A mode that was absent is written back as [MODE_PLATFORM_DEFAULT] (a key cannot be deleted again), so our
+     * monochromacy mode is not left behind. If the mode write fails, enabled=1 would keep the screen gray, so the
+     * filter is switched off instead and false is returned.
+     */
     fun restore(snapshot: DaltonizerSnapshot?): Boolean {
         if (!settings.canWrite()) return false
-        if (snapshot == null || (snapshot.enabled == null && snapshot.mode == null)) {
-            return settings.putInt(KEY_ENABLED, 0)
+        if (snapshot == null) return settings.putInt(KEY_ENABLED, 0)
+        if (!settings.putInt(KEY_MODE, snapshot.mode ?: MODE_PLATFORM_DEFAULT)) {
+            settings.putInt(KEY_ENABLED, 0)
+            return false
         }
-        val modeRestored = snapshot.mode?.let { settings.putInt(KEY_MODE, it) } ?: true
-        val enabledRestored = settings.putInt(KEY_ENABLED, snapshot.enabled ?: 0)
-        return modeRestored && enabledRestored
+        return settings.putInt(KEY_ENABLED, snapshot.enabled ?: 0)
     }
 }
