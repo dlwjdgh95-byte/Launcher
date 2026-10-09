@@ -27,9 +27,9 @@ function Find-Adb {
     return $null
 }
 
-# Output lines of `adb shell <args>`, without CRs; errors are ignored.
+# Output lines of `adb -s <serial> shell <args>`, without CRs; errors are ignored.
 function Invoke-Shell([string[]]$ShellArgs) {
-    & $script:Adb shell @ShellArgs 2>$null | ForEach-Object { "$_".TrimEnd("`r") }
+    & $script:Adb -s $script:Serial shell @ShellArgs 2>$null | ForEach-Object { "$_".TrimEnd("`r") }
 }
 
 function Get-Prop([string]$Name) { "$(Invoke-Shell @('getprop', $Name))".Trim() }
@@ -42,6 +42,9 @@ $ready = @(& $script:Adb devices 2>$null | Where-Object { "$_" -match '^\S+\s+de
 if ($ready.Count -ne 1) {
     Fail "기기가 정확히 1대 연결되어 있어야 합니다 (지금 $($ready.Count)대).`n    USB 디버깅 허용 창, 케이블, 삼성 자동 차단기(설정 > 보안 및 개인정보 보호 > 자동 차단기)를 확인하세요."
 }
+# Other entries (unauthorized, offline) would make every plain adb command fail with "more than one device".
+# -s rather than $env:ANDROID_SERIAL, which would linger in the caller's session after `.\device-check.ps1`.
+$script:Serial = ("$($ready[0])".Trim() -split '\s+')[0]
 
 Section '기기와 버전'
 $oneui = Get-Prop 'ro.build.version.oneui'
