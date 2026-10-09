@@ -1,25 +1,44 @@
 package app.monolauncher
 
+import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.activity.viewModels
+import app.monolauncher.ui.HomeViewModel
+import app.monolauncher.ui.LauncherRoot
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: HomeViewModel by viewModels { HomeViewModel.Factory }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                Text("흑백 런처", color = Color.White)
-            }
-        }
+        // Always light bar icons: the launcher is black regardless of the system theme.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
+        setContent { LauncherRoot(viewModel) }
+    }
+
+    // singleTask HOME: pressing HOME delivers a new intent here instead of a new activity.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        viewModel.resetUi()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        AppGraph.session.refresh()
+        AppGraph.apps.refresh()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Leaving the screen cancels the exit countdown; a fold/unfold recreation does not.
+        if (!isChangingConfigurations) viewModel.cancelExit()
     }
 }

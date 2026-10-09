@@ -1,4 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">흑백 런처</string>
+
+    <!-- Home -->
+    <string name="battery_percent">%1$d%%</string>
+    <string name="search_placeholder">검색</string>
+    <string name="search_no_results">결과 없음</string>
+    <string name="search_no_results_registered">결과 없음 · 세션 중에는 등록 앱만 찾습니다</string>
+    <string name="exit">종료</string>
+    <string name="start">시작</string>
+    <string name="start_caption">흑백 집중 세션을 다시 시작합니다</string>
+    <string name="settings">설정</string>
+    <string name="routine_running">%1$s 실행 중…</string>
+    <string name="routine_done">완료</string>
+    <string name="launch_not_registered">등록되지 않은 앱입니다</string>
+    <string name="launch_failed">앱을 열 수 없습니다</string>
+    <string name="routines_error">루틴 JSON 오류 · 종료 후 설정에서 고치세요\n%1$s</string>
+
+    <!-- Exit countdown -->
+    <string name="exit_countdown_title">종료까지</string>
+    <string name="exit_countdown_caption">종료하면 색이 돌아오고 모든 앱을 쓸 수 있습니다.\n계속 집중하려면 취소하세요.</string>
+    <string name="cancel">취소</string>
+
+    <!-- Setup -->
+    <string name="banner_grayscale">흑백 권한이 없습니다. PC에 연결해 아래 명령을 한 번 실행하세요.</string>
+    <string name="banner_default_home">기본 홈 앱이 아닙니다.</string>
+    <string name="set_default_home">기본 홈으로 설정</string>
+    <string name="copy">복사</string>
+    <string name="copied">복사됨</string>
+
+    <!-- Settings -->
+    <string name="close">닫기</string>
+    <string name="back">← 뒤로</string>
+    <string name="settings_registered">등록 앱</string>
+    <string name="settings_aliases">별칭</string>
+    <string name="settings_variables">루틴 변수</string>
+    <string name="settings_routines">루틴 JSON</string>
+    <string name="settings_permissions">권한</string>
+    <string name="needs_attention">확인 필요</string>
+    <string name="version">버전 %1$s</string>
+    <string name="registered_count">%1$d개</string>
+    <string name="registered_hint">세션 중에는 체크한 앱만 검색·실행됩니다</string>
+    <string name="filter_placeholder">앱 찾기</string>
+    <string name="not_installed">설치되지 않음</string>
+    <string name="unregister">해제</string>
+    <string name="aliases_hint">검색에 쓸 다른 이름을 쉼표로 구분해 적습니다.</string>
+    <string name="aliases_placeholder">예: 지도, 카맵</string>
+    <string name="aliases_empty">등록된 앱이 없습니다.</string>
+    <string name="variables_hint">루틴의 {이름} 자리에 들어갈 값입니다. 집 좌표는 소수 위도·경도로 적습니다 (예: 37.5665, 126.9780).</string>
+    <string name="routines_help">단계 type: launch, deeplink, shortcut, delay, media, volume, dnd, torch, timer, alarm, home</string>
+    <string name="routines_validate">검증</string>
+    <string name="routines_save">저장</string>
+    <string name="routines_reset">기본값으로 되돌리기</string>
+    <string name="routines_valid">올바른 형식입니다 · 루틴 %1$d개</string>
+    <string name="routines_saved">저장했습니다 · 루틴 %1$d개</string>
+    <string name="routines_invalid">오류: %1$s</string>
+    <string name="routines_reset_done">기본 루틴으로 되돌렸습니다</string>
+    <string name="perm_grayscale">흑백 제어</string>
+    <string name="perm_grayscale_how">PC에 연결해 아래 명령을 한 번 실행하세요. 앱을 지우기 전까지 유지됩니다.</string>
+    <string name="perm_default_home">기본 홈 앱</string>
+    <string name="perm_dnd">방해금지 접근</string>
+    <string name="perm_dnd_why">루틴의 방해금지 단계에 필요합니다.</string>
+    <string name="perm_granted">허용됨</string>
+    <string name="perm_missing">필요</string>
+    <string name="open_settings">설정 열기</string>
+    <string name="open_home_settings">홈 앱 설정</string>
 </resources>
