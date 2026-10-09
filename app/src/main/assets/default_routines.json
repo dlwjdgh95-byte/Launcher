@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "routines": [
+    {
+      "id": "go_home",
+      "label": "집 가기",
+      "steps": [
+        {
+          "type": "deeplink",
+          "uri": "kakaomap://route?ep={home_lat},{home_lng}&by={home_by}",
+          "packageName": "net.daum.android.map"
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "label": "음악",
+      "steps": [
+        { "type": "launch", "packageName": "com.google.android.apps.youtube.music" },
+        { "type": "delay", "ms": 3000 },
+        { "type": "media", "action": "play" }
+      ]
+    },
+    {
+      "id": "read",
+      "label": "독서",
+      "steps": [
+        {
+          "type": "launch",
+          "packageName": "com.kyobo.ebook.samsung",
+          "alternatives": ["com.kyobo.ebook.common.b2c"]
+        }
+      ]
+    },
+    {
+      "id": "audiobook",
+      "label": "오디오북",
+      "steps": [
+        {
+          "type": "launch",
+          "packageName": "kr.co.millie.millieshelf",
+          "alternatives": ["kr.co.millie.millieshelf.samsung"]
+        },
+        { "type": "delay", "ms": 4000 },
+        { "type": "media", "action": "play" }
+      ]
+    },
+    {
+      "id": "smart_home",
+      "label": "Google Home",
+      "steps": [
+        { "type": "launch", "packageName": "com.google.android.apps.chromecast.app" }
+      ]
+    }
+  ]
+}
