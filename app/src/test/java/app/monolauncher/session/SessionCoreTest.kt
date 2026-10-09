@@ -13,6 +13,7 @@ class SessionCoreTest {
     private class MemoryStore(
         override var state: SessionState = SessionState.ACTIVE,
         override var snapshot: DaltonizerSnapshot? = null,
+        override var restorePending: Boolean = false,
     ) : SessionStore
 
     private class RecordingWatch : GrayscaleWatch {
@@ -62,7 +63,108 @@ class SessionCoreTest {
         assertEquals(SessionState.EXITED, store.state)
         assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 0), settings.writes)
         assertNull(store.snapshot)
+        assertFalse(store.restorePending)
         assertFalse(watch.armed)
+    }
+
+    @Test
+    fun `failed restore on exit keeps the snapshot and marks the restore pending`() {
+        val settings = FakeSecureSettings(*colorSettings)
+        val store = MemoryStore()
+        val core = core(store, settings)
+        core.refresh()
+        settings.canWrite = false
+        settings.writes.clear()
+
+        core.exit()
+
+        assertEquals(SessionState.EXITED, core.state.value)
+        assertEquals(DaltonizerSnapshot(enabled = 0, mode = 12), store.snapshot)
+        assertTrue(store.restorePending)
+        assertTrue(settings.grayscaleOn())
+    }
+
+    @Test
+    fun `refresh while exited retries a pending restore and clears it on success`() {
+        val settings = FakeSecureSettings(*colorSettings)
+        val store = MemoryStore()
+        val watch = RecordingWatch()
+        val core = core(store, settings, watch)
+        core.refresh()
+        settings.canWrite = false
+        core.exit()
+
+        settings.canWrite = true
+        settings.writes.clear()
+        core.refresh()
+
+        assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 0), settings.writes)
+        assertNull(store.snapshot)
+        assertFalse(store.restorePending)
+        assertEquals(SessionState.EXITED, core.state.value)
+        assertFalse(watch.armed)
+
+        settings.writes.clear()
+        core.refresh()
+        assertEquals(noWrites, settings.writes)
+    }
+
+    @Test
+    fun `refresh while exited keeps a pending restore that fails again`() {
+        val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0, canWrite = false)
+        val snapshot = DaltonizerSnapshot(enabled = 0, mode = 12)
+        val store = MemoryStore(state = SessionState.EXITED, snapshot = snapshot, restorePending = true)
+
+        core(store, settings).refresh()
+
+        assertEquals(noWrites, settings.writes)
+        assertEquals(snapshot, store.snapshot)
+        assertTrue(store.restorePending)
+    }
+
+    @Test
+    fun `a kill during exit leaves the restore pending for the next refresh`() {
+        val settings = FakeSecureSettings(*colorSettings)
+        val store = MemoryStore()
+        core(store, settings).refresh()
+        // The process dies right after EXITED is persisted, before the restore runs.
+        val dying = object : SessionStore by store {
+            override var state: SessionState
+                get() = store.state
+                set(value) {
+                    store.state = value
+                    if (value == SessionState.EXITED) throw IllegalStateException("killed")
+                }
+        }
+        runCatching { core(dying, settings).exit() }
+        settings.writes.clear()
+
+        core(store, settings).refresh()
+
+        assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 0), settings.writes)
+        assertFalse(store.restorePending)
+        assertNull(store.snapshot)
+    }
+
+    @Test
+    fun `start after a failed restore keeps the original snapshot for the next exit`() {
+        val settings = FakeSecureSettings(*colorSettings)
+        val store = MemoryStore()
+        val core = core(store, settings)
+        core.refresh()
+        settings.canWrite = false
+        core.exit()
+
+        settings.canWrite = true
+        core.start()
+        assertFalse(store.restorePending)
+        assertEquals(DaltonizerSnapshot(enabled = 0, mode = 12), store.snapshot)
+        assertTrue(settings.grayscaleOn())
+
+        settings.writes.clear()
+        core.exit()
+        assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 0), settings.writes)
+        assertFalse(store.restorePending)
     }
 
     @Test

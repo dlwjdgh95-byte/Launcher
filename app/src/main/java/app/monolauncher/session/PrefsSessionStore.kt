@@ -31,6 +31,12 @@ class PrefsSessionStore internal constructor(private val prefs: SharedPreference
             }.commit()
         }
 
+    override var restorePending: Boolean
+        get() = prefs.getBoolean(KEY_RESTORE_PENDING, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_RESTORE_PENDING, value).commit()
+        }
+
     private fun SharedPreferences.intOrNull(key: String): Int? = if (contains(key)) getInt(key, 0) else null
 
     private companion object {
@@ -39,5 +45,6 @@ class PrefsSessionStore internal constructor(private val prefs: SharedPreference
         const val KEY_SNAPSHOT_SAVED = "snapshot_saved"
         const val KEY_SNAPSHOT_ENABLED = "snapshot_enabled"
         const val KEY_SNAPSHOT_MODE = "snapshot_mode"
+        const val KEY_RESTORE_PENDING = "restore_pending"
     }
 }

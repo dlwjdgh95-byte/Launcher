@@ -59,7 +59,7 @@ class GrayscaleControllerTest {
     }
 
     @Test
-    fun `restore of a missing snapshot turns the filter off`() {
+    fun `restore of a missing snapshot only turns the filter off`() {
         val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0)
 
         assertTrue(GrayscaleController(settings).restore(null))
@@ -68,12 +68,12 @@ class GrayscaleControllerTest {
     }
 
     @Test
-    fun `restore of a snapshot without values turns the filter off`() {
+    fun `restore of a snapshot without values writes the platform default mode and turns the filter off`() {
         val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0)
 
         assertTrue(GrayscaleController(settings).restore(DaltonizerSnapshot(null, null)))
 
-        assertEquals(listOf(KEY_ENABLED to 0), settings.writes)
+        assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 0), settings.writes)
     }
 
     @Test
@@ -95,12 +95,45 @@ class GrayscaleControllerTest {
     }
 
     @Test
-    fun `restore with only enabled leaves the mode alone`() {
+    fun `restore with an absent mode and the filter off writes the platform default mode`() {
         val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0)
 
         assertTrue(GrayscaleController(settings).restore(DaltonizerSnapshot(enabled = 0, mode = null)))
 
+        assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 0), settings.writes)
+    }
+
+    @Test
+    fun `restore with an absent mode and the filter on writes the platform default mode before enabled`() {
+        val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0)
+        val grayscale = GrayscaleController(settings)
+
+        assertTrue(grayscale.restore(DaltonizerSnapshot(enabled = 1, mode = null)))
+
+        assertEquals(listOf(KEY_MODE to 12, KEY_ENABLED to 1), settings.writes)
+        assertFalse(grayscale.isGrayscaleOn())
+    }
+
+    @Test
+    fun `restore with an absent mode turns the filter off when the mode write fails`() {
+        val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0).apply { failingKeys += KEY_MODE }
+        val grayscale = GrayscaleController(settings)
+
+        assertFalse(grayscale.restore(DaltonizerSnapshot(enabled = 1, mode = null)))
+
         assertEquals(listOf(KEY_ENABLED to 0), settings.writes)
+        assertFalse(grayscale.isGrayscaleOn())
+    }
+
+    @Test
+    fun `restore does not re-enable the filter in monochromacy when the mode write fails`() {
+        val settings = FakeSecureSettings(KEY_ENABLED to 1, KEY_MODE to 0).apply { failingKeys += KEY_MODE }
+        val grayscale = GrayscaleController(settings)
+
+        assertFalse(grayscale.restore(DaltonizerSnapshot(enabled = 1, mode = 12)))
+
+        assertEquals(listOf(KEY_ENABLED to 0), settings.writes)
+        assertFalse(grayscale.isGrayscaleOn())
     }
 
     @Test
