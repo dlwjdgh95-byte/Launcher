@@ -1,1 +1,32 @@
-{"version":1,"routines":[]}
+{
+  "version": 1,
+  "routines": [
+    {
+      "id": "go_home",
+      "label": "집 가기",
+      "steps": [
+        {
+          "type": "deeplink",
+          "uri": "kakaomap://route?ep={home_lat},{home_lng}&by=PUBLICTRANSIT",
+          "packageName": "net.daum.android.map"
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "label": "음악",
+      "steps": [
+        { "type": "launch", "packageName": "com.google.android.apps.youtube.music" },
+        { "type": "delay", "ms": 2500 },
+        { "type": "media", "action": "play" }
+      ]
+    },
+    {
+      "id": "smart_home",
+      "label": "집",
+      "steps": [
+        { "type": "launch", "packageName": "com.google.android.apps.chromecast.app" }
+      ]
+    }
+  ]
+}
