@@ -107,6 +107,127 @@ class RoutineRunnerTest {
     }
 
     @Test
+    fun sessionNarrowsLaunchToRegisteredCandidatesInOrder() = runTest {
+        val executor = RecordingExecutor()
+
+        val results = RoutineRunner(executor).run(
+            routine(
+                Step.Launch("a", listOf("b", "c", "d")),
+                Step.Launch("b", listOf("c", "a")),
+                Step.Launch("b", listOf("{alt}")),
+            ),
+            variables = mapOf("alt" to "a"),
+            allowedPackages = setOf("a", "c"),
+        )
+
+        assertEquals(List(3) { success }, results)
+        assertEquals(
+            listOf(Step.Launch("a", listOf("c")), Step.Launch("c", listOf("a")), Step.Launch("a")),
+            executor.executed,
+        )
+    }
+
+    @Test
+    fun sessionSkipsLaunchWhenNoCandidateIsRegistered() = runTest {
+        val executor = RecordingExecutor()
+
+        val results = RoutineRunner(executor).run(
+            routine(Step.Launch("b", listOf("c", "d"))),
+            variables = emptyMap(),
+            allowedPackages = setOf("a"),
+        )
+
+        assertEquals(listOf(StepResult.Skipped("등록되지 않은 앱: b")), results)
+        assertTrue(executor.executed.isEmpty())
+    }
+
+    @Test
+    fun launchAlternativesAreKeptWithoutSessionAndNeedTheirVariables() = runTest {
+        val executor = RecordingExecutor()
+
+        val results = RoutineRunner(executor).run(
+            routine(Step.Launch("b", listOf("{alt}")), Step.Launch("a", listOf("{missing}"))),
+            variables = mapOf("alt" to "c"),
+            allowedPackages = null,
+        )
+
+        assertEquals(listOf(success, StepResult.Failed("설정에서 'missing' 값을 입력해 주세요")), results)
+        assertEquals(listOf(Step.Launch("b", listOf("c"))), executor.executed)
+    }
+
+    @Test
+    fun sessionSkipsMediaAfterAnAppStepWasSkipped() = runTest {
+        val executor = RecordingExecutor()
+
+        val results = RoutineRunner(executor).run(
+            routine(Step.Launch("unregistered"), Step.Delay(1000), Step.Media(MediaAction.PLAY)),
+            variables = emptyMap(),
+            allowedPackages = setOf("a"),
+        )
+
+        val skippedMedia = StepResult.Skipped("앞 단계의 앱이 열리지 않아 재생을 건너뜁니다")
+        assertEquals(listOf(StepResult.Skipped("등록되지 않은 앱: unregistered"), success, skippedMedia), results)
+        assertTrue(executor.executed.isEmpty())
+    }
+
+    @Test
+    fun sessionSkipsMediaAfterAnAppStepFailed() = runTest {
+        val failed = StepResult.Failed("앱을 열 수 없습니다: a")
+        val executor = RecordingExecutor { step -> if (step is Step.Launch) failed else success }
+
+        val results = RoutineRunner(executor).run(
+            routine(
+                Step.Media(MediaAction.PAUSE),
+                Step.Launch("a"),
+                Step.Volume(30),
+                Step.Media(MediaAction.PLAY),
+                Step.DeepLink("x://y"),
+            ),
+            variables = emptyMap(),
+            allowedPackages = setOf("a"),
+        )
+
+        assertEquals(
+            listOf(
+                success,
+                failed,
+                success,
+                StepResult.Skipped("앞 단계의 앱이 열리지 않아 재생을 건너뜁니다"),
+                StepResult.Skipped("세션 중에는 딥링크에 패키지를 지정해야 합니다"),
+            ),
+            results,
+        )
+        assertEquals(
+            listOf(Step.Media(MediaAction.PAUSE), Step.Launch("a"), Step.Volume(30)),
+            executor.executed,
+        )
+    }
+
+    @Test
+    fun sessionSkipsMediaAfterDeepLinkWithoutPackage() = runTest {
+        val results = RoutineRunner(RecordingExecutor()).run(
+            routine(Step.DeepLink("https://music.example"), Step.Media(MediaAction.PLAY)),
+            variables = emptyMap(),
+            allowedPackages = setOf("a"),
+        )
+
+        assertEquals(StepResult.Skipped("앞 단계의 앱이 열리지 않아 재생을 건너뜁니다"), results[1])
+    }
+
+    @Test
+    fun mediaRunsAfterMissedAppStepWithoutSession() = runTest {
+        val executor = RecordingExecutor { step -> if (step is Step.Launch) StepResult.Failed("x") else success }
+
+        val results = RoutineRunner(executor).run(
+            routine(Step.Launch("a"), Step.Media(MediaAction.PLAY)),
+            variables = emptyMap(),
+            allowedPackages = null,
+        )
+
+        assertEquals(listOf(StepResult.Failed("x"), success), results)
+    }
+
+    @Test
     fun sessionSkipsDeepLinksWithoutPackage() = runTest {
         val executor = RecordingExecutor()
 

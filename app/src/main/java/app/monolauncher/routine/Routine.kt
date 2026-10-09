@@ -25,9 +25,18 @@ sealed interface Step {
     /** Package the step opens, if any. Used to enforce "only registered apps" during a session. */
     val targetPackage: String? get() = null
 
+    /**
+     * Opens an app. [alternatives] are other packages of the same app (e.g. a Galaxy Store and a
+     * Play Store build) tried in order when [packageName] cannot be launched, so one routine works
+     * whichever variant is installed. During a session only registered candidates are tried.
+     * [targetPackage] stays [packageName] for compatibility; use [candidates] for the full list.
+     */
     @Serializable @SerialName("launch")
-    data class Launch(val packageName: String) : Step {
+    data class Launch(val packageName: String, val alternatives: List<String> = emptyList()) : Step {
         override val targetPackage get() = packageName
+
+        /** [packageName] followed by [alternatives], without duplicates, in the order they are tried. */
+        val candidates: List<String> get() = (listOf(packageName) + alternatives).distinct()
     }
 
     @Serializable @SerialName("deeplink")

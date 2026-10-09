@@ -37,7 +37,7 @@
 
 | `type` | 하는 일 | 필드 |
 |---|---|---|
-| [`launch`](#launch--앱-열기) | 앱 열기 | `packageName` |
+| [`launch`](#launch--앱-열기) | 앱 열기 | `packageName`, `alternatives`(선택) |
 | [`deeplink`](#deeplink--링크로-열기) | 링크(URL, 앱 스킴) 열기 | `uri`, `packageName`(선택) |
 | [`shortcut`](#shortcut--앱-바로가기) | 앱 바로가기 실행 | `packageName`, `shortcutId` |
 | [`delay`](#delay--기다리기) | 기다리기 | `ms` |
@@ -54,9 +54,16 @@
 | 필드 | 형식 | 필수 | 설명 |
 |---|---|---|---|
 | `packageName` | 문자열 | 예 | 열 앱의 패키지 이름 |
+| `alternatives` | 문자열 목록 | 아니요 | `packageName`을 열 수 없을 때 차례로 시도할 다른 패키지(같은 앱의 갤럭시 스토어판·Play판 등) |
 
 ```json
 { "type": "launch", "packageName": "com.google.android.apps.youtube.music" }
+```
+
+같은 앱이 스토어마다 패키지가 다르면 `alternatives`에 나머지를 적어 두세요. 설치된 쪽이 열립니다. `packageName`부터 적힌 순서대로 시도해 처음 열린 앱에서 멈추고, 하나도 열리지 않으면 실패합니다.
+
+```json
+{ "type": "launch", "packageName": "com.kyobo.ebook.samsung", "alternatives": ["com.kyobo.ebook.common.b2c"] }
 ```
 
 패키지 이름은 `scripts/device-check.sh`(Windows는 `device-check.ps1`)로 확인할 수 있습니다. 이 프로젝트에서 쓰는 앱:
@@ -122,7 +129,7 @@
 
 ### media — 재생 제어
 
-지금 소리를 내고 있거나 마지막으로 재생한 앱에 미디어 버튼을 보냅니다.
+지금 소리를 내고 있거나 마지막으로 재생한 앱에 미디어 버튼을 보냅니다. 세션 중에는 앞에서 앱을 여는 단계가 건너뛰어지거나 실패했으면 이 단계도 건너뜁니다([세션 중 규칙](#세션-중-규칙)).
 
 | 필드 | 형식 | 필수 | 설명 |
 |---|---|---|---|
@@ -151,6 +158,8 @@
 ```json
 { "type": "dnd", "on": true }
 ```
+
+이 단계는 **흑백 런처가 켠 방해 금지만** 켜고 끕니다. 사용자가 빠른 설정에서 켰거나 다른 앱·모드가 켠 방해 금지는 `"on": false`로 끌 수 없으며, 이때는 '다른 곳에서 켠 방해 금지는 끌 수 없습니다'라며 건너뜁니다(안드로이드 15부터 앱은 자기가 켠 방해 금지만 끌 수 있음).
 
 '방해 금지 접근' 권한이 없으면 이 단계는 건너뜁니다. 폰 설정의 특별한 접근 > 방해 금지 권한에서 흑백 런처를 허용하거나(메뉴 위치는 One UI 버전에 따라 다를 수 있음), PC에서 다음을 실행하세요.
 
@@ -216,7 +225,7 @@ adb shell cmd notification allow_dnd app.monolauncher
 | `home_by` | '집 가기'의 이동수단 (기본값 `publictransit`) | `car` |
 
 - 이름은 영문자나 밑줄로 시작하고 영문자·숫자·밑줄만 씁니다. 필요한 변수는 설정 > 루틴 변수에서 직접 더 만들 수 있습니다(예: `work_lat`, `work_lng`).
-- 쓸 수 있는 필드: `launch.packageName`, `deeplink.uri`, `deeplink.packageName`, `shortcut.packageName`, `shortcut.shortcutId`, `timer.message`, `alarm.message`. 숫자 필드에는 쓸 수 없습니다.
+- 쓸 수 있는 필드: `launch.packageName`, `launch.alternatives`(목록의 각 항목), `deeplink.uri`, `deeplink.packageName`, `shortcut.packageName`, `shortcut.shortcutId`, `timer.message`, `alarm.message`. 숫자 필드에는 쓸 수 없습니다.
 - 값을 넣지 않은 변수가 있으면 그 단계는 '설정에서 'home_lat' 값을 입력해 주세요'라며 실패하고, 나머지 단계는 계속 실행됩니다.
 - 집 좌표는 집에서 설정 > 루틴 변수의 **'현재 위치를 집으로 저장'** 을 누르면 자동으로 들어갑니다(위치 권한 필요). 직접 넣으려면 구글 지도에서 위치를 길게 누르면 `37.5665, 126.9780`처럼 나옵니다. 앞이 위도, 뒤가 경도입니다.
 
@@ -225,8 +234,9 @@ adb shell cmd notification allow_dnd app.monolauncher
 세션 중(흑백)에는 등록한 앱만 열 수 있다는 규칙이 루틴에도 똑같이 적용됩니다.
 
 - `launch`, `deeplink`, `shortcut` 단계가 **등록하지 않은 앱**을 열려고 하면 그 단계를 건너뜁니다.
+- `alternatives`가 있는 `launch`는 `packageName`과 `alternatives` 중 **등록한 앱만** 적힌 순서대로 시도합니다. 하나도 등록하지 않았으면 건너뜁니다.
 - `packageName`이 없는 `deeplink`는 어떤 앱이 열릴지 알 수 없으므로 세션 중에는 건너뜁니다. 세션 중에 쓸 딥링크에는 꼭 패키지를 적으세요.
-- 앱을 열지 않는 단계(`delay`, `media`, `volume`, `dnd`, `torch`, `timer`, `alarm`, `home`)는 항상 실행합니다.
+- 앱을 열지 않는 단계(`delay`, `media`, `volume`, `dnd`, `torch`, `timer`, `alarm`, `home`)는 항상 실행합니다. 단, 앞에서 앱을 여는 단계(`launch`, `deeplink`, `shortcut`)가 하나라도 건너뛰어지거나 실패했으면 그 뒤의 `media` 단계는 '앞 단계의 앱이 열리지 않아 재생을 건너뜁니다'라며 건너뜁니다. 그대로 재생하면 마지막으로 재생한 다른 앱(등록하지 않은 앱일 수도 있음)이 소리를 내기 때문입니다.
 - 종료 상태(컬러)에서는 모든 단계를 실행합니다.
 - 한 단계가 실패하거나 건너뛰어도 루틴은 멈추지 않고 다음 단계로 넘어갑니다.
 - 루틴은 겹쳐 실행되지 않습니다. 실행 중에 다른 버튼을 누르면 앞 루틴이 끝난 뒤 실행됩니다.
@@ -274,26 +284,28 @@ YouTube Music Premium이 없으면 다른 앱으로 넘어갔을 때 재생이 �
 
 ### 독서 (기본 루틴)
 
+교보eBook for 삼성을 열고, 없으면 Play판 교보eBook을 엽니다.
+
 ```json
 {
   "id": "read",
   "label": "독서",
   "steps": [
-    { "type": "launch", "packageName": "com.kyobo.ebook.samsung" }
+    { "type": "launch", "packageName": "com.kyobo.ebook.samsung", "alternatives": ["com.kyobo.ebook.common.b2c"] }
   ]
 }
 ```
 
 ### 오디오북 (기본 루틴)
 
-밀리의서재를 열고 마지막에 듣던 오디오북을 이어서 재생합니다. 재생 키는 마지막으로 재생한 앱에 전달되므로, 밀리의서재가 마지막 재생 앱이어야 합니다.
+밀리의서재(Play판, 없으면 갤럭시 스토어판)를 열고 마지막에 듣던 오디오북을 이어서 재생합니다. 재생 키는 마지막으로 재생한 앱에 전달되므로, 밀리의서재가 마지막 재생 앱이어야 합니다.
 
 ```json
 {
   "id": "audiobook",
   "label": "오디오북",
   "steps": [
-    { "type": "launch", "packageName": "kr.co.millie.millieshelf" },
+    { "type": "launch", "packageName": "kr.co.millie.millieshelf", "alternatives": ["kr.co.millie.millieshelf.samsung"] },
     { "type": "delay", "ms": 4000 },
     { "type": "media", "action": "play" }
   ]

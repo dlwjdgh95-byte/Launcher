@@ -55,9 +55,10 @@ class AndroidStepExecutor(
     private inline fun opening(block: () -> StepResult): StepResult =
         block().also { if (it == StepResult.Success) otherAppInFront = true }
 
+    /** Tries each candidate package in order; succeeds with the first that launches. */
     private fun launch(step: Step.Launch): StepResult =
-        if (apps.launchPackage(step.packageName)) StepResult.Success
-        else StepResult.Failed("앱을 열 수 없습니다: ${step.packageName}")
+        if (step.candidates.any(apps::launchPackage)) StepResult.Success
+        else StepResult.Failed("앱을 열 수 없습니다: ${step.candidates.joinToString(", ")}")
 
     private fun openDeepLink(step: Step.DeepLink): StepResult {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(step.uri)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -117,6 +118,10 @@ class AndroidStepExecutor(
         notifications.setInterruptionFilter(
             if (on) NotificationManager.INTERRUPTION_FILTER_PRIORITY else NotificationManager.INTERRUPTION_FILTER_ALL,
         )
+        // An app can only turn off its own DND mode; DND turned on by the user or another app stays on.
+        if (!on && notifications.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) {
+            return StepResult.Skipped("다른 곳에서 켠 방해 금지는 끌 수 없습니다")
+        }
         return StepResult.Success
     }
 
@@ -159,10 +164,10 @@ class AndroidStepExecutor(
     }
 
     private fun goHome(): StepResult {
-        val intent = Intent(Intent.ACTION_MAIN)
-            .addCategory(Intent.CATEGORY_HOME)
-            .setPackage(context.packageName)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // Explicit and without CATEGORY_HOME: MainActivity treats a HOME intent as the user pressing
+        // HOME and resets its UI, which would clear this routine's status line and exit countdown.
+        val intent = Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
         return start(intent, notFound = "홈 화면을 열 수 없습니다")
             .also { if (it == StepResult.Success) otherAppInFront = false }
     }
