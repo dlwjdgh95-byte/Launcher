@@ -1,10 +1,28 @@
 package app.monolauncher.session
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.provider.Settings
 
-class AndroidSecureSettings(private val context: Context) : SecureSettings {
-    // TODO(session module): Settings.Secure get/put + checkSelfPermission(WRITE_SECURE_SETTINGS).
-    override fun getInt(name: String): Int? = null
-    override fun putInt(name: String, value: Int): Boolean = false
-    override fun canWrite(): Boolean = false
+class AndroidSecureSettings(context: Context) : SecureSettings {
+    private val context = context.applicationContext
+
+    override fun getInt(name: String): Int? = try {
+        Settings.Secure.getInt(context.contentResolver, name)
+    } catch (e: Settings.SettingNotFoundException) {
+        null
+    } catch (e: SecurityException) {
+        // Hidden keys that are not @Readable throw for apps targeting S+.
+        null
+    }
+
+    override fun putInt(name: String, value: Int): Boolean = try {
+        Settings.Secure.putInt(context.contentResolver, name, value)
+    } catch (e: SecurityException) {
+        false
+    }
+
+    override fun canWrite(): Boolean =
+        context.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
 }

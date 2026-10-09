@@ -30,13 +30,19 @@ class GrayscaleController(private val settings: SecureSettings) {
 
     /** Turns grayscale on. Returns false if the permission is missing or a write failed. */
     fun enable(): Boolean {
-        // TODO(session module)
-        return false
+        if (!settings.canWrite()) return false
+        // Without mode=0 the enabled flag would switch on color correction instead of grayscale.
+        return settings.putInt(KEY_MODE, MODE_MONOCHROMACY) && settings.putInt(KEY_ENABLED, 1)
     }
 
     /** Restores [snapshot] (or turns grayscale off when the snapshot had no values). */
     fun restore(snapshot: DaltonizerSnapshot?): Boolean {
-        // TODO(session module)
-        return false
+        if (!settings.canWrite()) return false
+        if (snapshot == null || (snapshot.enabled == null && snapshot.mode == null)) {
+            return settings.putInt(KEY_ENABLED, 0)
+        }
+        val modeRestored = snapshot.mode?.let { settings.putInt(KEY_MODE, it) } ?: true
+        val enabledRestored = settings.putInt(KEY_ENABLED, snapshot.enabled ?: 0)
+        return modeRestored && enabledRestored
     }
 }
