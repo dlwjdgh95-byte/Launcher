@@ -52,10 +52,24 @@ class RoutineJsonTest {
     }
 
     @Test
+    fun launchAlternativesRoundTripAndAreOmittedWhenEmpty() {
+        val steps = listOf(Step.Launch("a.b", listOf("a.c", "a.d")), Step.Launch("a.b"))
+        val withAlternatives = RoutineConfig(routines = listOf(Routine("r", "R", steps)))
+        val text = RoutineJson.encode(withAlternatives)
+
+        assertEquals(withAlternatives, RoutineJson.parse(text))
+        val encoded = Json.parseToJsonElement(text)
+            .jsonObject["routines"]!!.jsonArray[0].jsonObject["steps"]!!.jsonArray
+        assertEquals(listOf("a.c", "a.d"), encoded[0].jsonObject["alternatives"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(setOf("type", "packageName"), encoded[1].jsonObject.keys)
+    }
+
+    @Test
     fun parsesHandWrittenStepsAndIgnoresUnknownKeys() {
         val text = """
             {"version": 1, "routines": [{"id": "r", "label": "루틴", "steps": [
               {"type": "launch", "packageName": "a.b", "futureField": 1},
+              {"type": "launch", "packageName": "a.b", "alternatives": ["a.c"]},
               {"type": "deeplink", "uri": "x://y"},
               {"type": "shortcut", "packageName": "a.b", "shortcutId": "s"},
               {"type": "delay", "ms": 1000},
@@ -75,6 +89,7 @@ class RoutineJsonTest {
         assertEquals(
             listOf(
                 Step.Launch("a.b"),
+                Step.Launch("a.b", listOf("a.c")),
                 Step.DeepLink("x://y"),
                 Step.Shortcut("a.b", "s"),
                 Step.Delay(1000),

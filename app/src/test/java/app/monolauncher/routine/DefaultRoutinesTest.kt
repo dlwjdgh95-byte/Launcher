@@ -42,6 +42,25 @@ class DefaultRoutinesTest {
     }
 
     @Test
+    fun readingRoutinesFallBackToTheOtherStoreVariant() = runTest {
+        val executor = RecordingExecutor()
+        val runner = RoutineRunner(executor)
+        val onlyOtherVariants = setOf("com.kyobo.ebook.common.b2c", "kr.co.millie.millieshelf.samsung")
+
+        for (label in listOf("독서", "오디오북")) {
+            val routine = config.routines.first { it.label == label }
+            val results = runner.run(routine, home, onlyOtherVariants)
+            assertEquals(label, List(routine.steps.size) { StepResult.Success }, results)
+        }
+
+        assertEquals(
+            listOf(Step.Launch("com.kyobo.ebook.common.b2c"), Step.Launch("kr.co.millie.millieshelf.samsung")),
+            executor.executed.filterIsInstance<Step.Launch>(),
+        )
+        assertEquals(onlyOtherVariants, onlyOtherVariants.intersect(Defaults.REGISTERED_PACKAGES.toSet()))
+    }
+
+    @Test
     fun everyDefaultRoutineRunsInSessionWithDefaultRegisteredApps() = runTest {
         val runner = RoutineRunner(RecordingExecutor())
         val allowed = Defaults.REGISTERED_PACKAGES.toSet()

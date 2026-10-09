@@ -18,7 +18,7 @@ private fun Step.strings(): List<String> = buildList { mapStrings { add(it); it 
 
 /** Applies [transform] to every String field of the step. */
 private fun Step.mapStrings(transform: (String) -> String): Step = when (this) {
-    is Step.Launch -> copy(packageName = transform(packageName))
+    is Step.Launch -> copy(packageName = transform(packageName), alternatives = alternatives.map(transform))
     is Step.DeepLink -> copy(uri = transform(uri), packageName = packageName?.let(transform))
     is Step.Shortcut -> copy(packageName = transform(packageName), shortcutId = transform(shortcutId))
     is Step.Timer -> copy(message = message?.let(transform))
