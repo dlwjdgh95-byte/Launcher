@@ -45,11 +45,9 @@
 
         <receiver
             android:name=".session.BootReceiver"
-            android:directBootAware="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
     </application>
