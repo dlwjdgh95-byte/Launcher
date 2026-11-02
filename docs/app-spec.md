@@ -1,4 +1,4 @@
-# "PC 원격 접속" 앱 명세 (초안 v0.1, 2026-11-02)
+# "PC 원격 접속" 앱 명세 (초안 v0.2, 2026-11-02)
 
 영상(민티저, https://youtu.be/31qcQLzcKkg)에서 보여 준 자작 앱을 이 레포에서 다시 만든다.
 앱 하나가 Tailscale 연결 → PC 깨우기 → Sunshine 응답 대기 → Moonlight 실행을 버튼 하나로 묶는다.
@@ -45,17 +45,31 @@ WoL·Sunshine 응답 감지·Moonlight 자동 실행)을 그대로 만족하는 
    브로드캐스트(255.255.255.255:9)로 매직패킷을 3회 보낸다. 앱은 `깨우는 중…`으로 바꾸고 폴링을 계속한다.
    Sunshine 응답이 오면 `켜져 있음`으로 바꾸고, 자동 연결이 켜져 있으면 3단계를 실행한다. 타임아웃이면
    "PC가 응답하지 않습니다. BIOS WoL·빠른 시작 설정을 확인하세요." 안내.
-3. **화면 연결**: Moonlight Android의 바로가기 진입점(`com.limelight/.ShortcutTrampoline`)을 인텐트로 연다.
-   extras로 호스트 이름(또는 UUID)과 앱 이름(`Desktop`)을 넘기면 페어링된 호스트의 스트리밍이 바로 시작된다.
-   Moonlight가 없으면 Play 스토어로 보낸다. (페어링은 Moonlight에서 한 번 손으로 한다 — 앱이 대신하지 않는다.)
+3. **화면 연결**: Moonlight Android의 바로가기 진입점(`com.limelight/.ShortcutTrampoline`, exported)을 인텐트로 연다.
+   extras는 전부 String이다: PC는 `UUID` 또는 `Name`(둘 중 하나 필수), 앱은 `AppId` 또는 `AppName`(기본 `Desktop`).
+   `AppName`은 Moonlight가 캐시한 앱 목록에서 찾으므로 사용자가 앱 목록을 한 번 열어 둬야 한다(셋업 가이드 2-5).
+   앱 지정을 빼면 그 PC의 앱 목록 화면이 열린다. Moonlight가 없거나 인텐트가 실패하면(`ActivityNotFoundException`)
+   Play 스토어로 보낸다. 페어링은 Moonlight에서 한 번 손으로 한다 — 앱이 대신하지 않는다.
 4. **PC 끄기** — 둘 중 하나를 고른다(기본은 A):
    - **A. Sunshine 앱 등록(추가 설치 0)**: Sunshine 웹 UI(`https://<pc>:47990`)의 Applications에
-     이름 `PC 끄기`, 명령 `shutdown /s /t 5`인 앱을 추가한다. 앱은 Moonlight 인텐트로 그 앱을 실행한다.
-     장점: SSH·에이전트가 필요 없다. 단점: Moonlight 화면이 잠깐 뜬다.
+     이름 `PC 끄기`, 명령 `shutdown /s /t 5`인 앱을 추가한다. 앱은 Moonlight 인텐트(`AppName=PC 끄기`)로 그 앱을 실행한다.
+     장점: SSH·에이전트가 필요 없다. 단점: Moonlight 화면이 잠깐 뜬다. (Sunshine REST API(47990)에는 앱 실행
+     엔드포인트가 없고, 실행은 HTTPS 47984 `/launch`에 페어링 인증서가 필요하다 — 그래서 Moonlight를 거친다.)
    - **B. NAS 중계의 `POST /shutdown`**: NAS가 PC의 Windows OpenSSH 서버에 키로 접속해 `shutdown /s /t 0`을
      실행한다. 장점: 즉시·조용함. 단점: Windows OpenSSH 서버와 키 배포가 필요하다.
 5. **키보드 버튼 켜기**: §5 미결 — Moonlight 자체의 화면 키보드(스트리밍 중 세 손가락 탭)를 안내하는
    방식이 가장 단순하다. 앱이 직접 키 입력을 PC로 보내려면 Moonlight 프로토콜을 다시 구현해야 하므로 하지 않는다.
+
+### 4-1. 검증 메모 (2026-11-02, 공식 문서·소스 확인)
+
+- Sunshine HTTP `/serverinfo`(47989)는 페어링·인증서 없이 응답한다. `state`·`hostname`·`uniqueid`가 들어 있고
+  `mac`은 더미값(00:00:00:00:00:00)이라 MAC 자동 수집은 못 한다 → NAS `.env`에 손으로 적는다.
+- Tailscale Windows는 기본 설정에서 로그인 전까지 연결되지 않는다 → **Run unattended** 필수. 이게 없으면
+  WoL 뒤 폴링이 영원히 실패한다. 앱의 타임아웃 안내 문구에 이 항목을 넣는다.
+- Synology DSM 7은 NAS→Tailscale 아웃바운드가 기본 비활성 → 중계의 `PC_HOST`는 PC LAN IP. 앱은 PC 상태를 NAS를
+  거치지 않고 폰→PC Tailscale 직접 폴링으로 본다(중계의 `/status`는 보조).
+- ShortcutTrampoline은 PC가 오프라인이고 MAC을 알면 스스로 WoL을 최대 10회 보내지만 같은 LAN에서만 의미가 있다.
+  밖에서는 이 레포의 NAS 중계가 맡는다.
 
 ## 5. 미결 사항 (사용자 결정 필요)
 

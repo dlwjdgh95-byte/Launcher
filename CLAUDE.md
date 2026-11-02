@@ -13,12 +13,12 @@
 | `docs/setup-guide.md` | 셋업 설명과 준비물 — 하드웨어·소프트웨어·네트워크·순서·검증·비용 |
 | `docs/app-spec.md` | "PC 원격 접속" 앱 명세 — 화면·동작·설정·보안·마일스톤·미결 사항 |
 
-## 구조 (예정)
+## 구조
 
 ```
 docs/          # 위 문서
-nas-relay/     # NAS에서 도는 WoL 중계 서버 (Python 단일 파일 + Docker) — M1
-app/           # Android 앱 (Kotlin · Jetpack Compose) — M2~
+nas-relay/     # NAS에서 도는 WoL 중계 서버 (Python 표준 라이브러리 단일 파일 + Docker, pytest) — M1 완료
+app/           # Android 앱 (Kotlin · Jetpack Compose) — M2~ (예정)
 ```
 
 ## 규약
