@@ -1,0 +1,15 @@
+# secrets / local config
+.env
+*.local.*
+nas-relay/.env
+app/local.properties
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+# android
+app/build/
+app/.gradle/
+app/.idea/
+*.apk
+*.aab
