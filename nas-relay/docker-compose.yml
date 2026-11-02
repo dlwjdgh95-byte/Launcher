@@ -1,0 +1,10 @@
+services:
+  nas-relay:
+    build: .
+    image: nas-relay:local
+    container_name: nas-relay
+    # host 네트워크 필수: 브릿지 네트워크에서는 UDP 브로드캐스트(WoL)가 LAN에 닿지 않는다.
+    # host 모드에서는 `ports:`를 쓰지 않는다 — 포트는 RELAY_BIND:RELAY_PORT(.env)로 정해진다.
+    network_mode: host
+    env_file: .env
+    restart: unless-stopped
