@@ -16,7 +16,8 @@
    - login.tailscale.com/admin/machines 에서 이 노트북 `…` > **Disable key expiry**.
    - 노트북의 Tailscale IP(100.x.x.x)를 적어 둔다.
 5. **Sunshine**
-   - github.com/LizardByte/Sunshine 의 Releases에서 Windows 설치 파일(.exe) 설치(서비스·방화벽 자동 등록).
+   - 가장 쉬운 방법: 관리자 PowerShell에서 `winget install --id LizardByte.Sunshine --exact`.
+   - 또는 github.com/LizardByte/Sunshine/releases/latest 에서 **`Sunshine-Windows-AMD64-installer.msi`** 를 받아 실행(인텔 노트북은 AMD64, ARM64 아님). 서비스·방화벽 자동 등록.
    - 브라우저로 `https://localhost:47990` → 인증서 경고는 "계속" → 관리자 아이디·비밀번호 생성.
    - Applications > Add New: 이름 `PC 끄기`, Command `shutdown /s /t 5` 저장. 같은 방법으로 `재부팅`, `shutdown /r /t 5`.
 6. **자동 로그인** (재부팅 후 바로 바탕화면이 떠야 스트리밍이 확실하다)
